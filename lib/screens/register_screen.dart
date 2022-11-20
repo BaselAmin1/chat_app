@@ -1,5 +1,6 @@
 import 'package:chat_app/constants.dart';
 import 'package:chat_app/helper/show_snack_bar.dart';
+import 'package:chat_app/screens/chat_screen.dart';
 import 'package:chat_app/widgets/custom_button.dart';
 import 'package:chat_app/widgets/custom_text_form_field.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -36,7 +37,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             key: formKey,
             child: ListView(children: [
               Image.asset(
-                'assets/images/scholar.png',
+                kLogo,
                 height: 200,
               ),
               Row(
@@ -107,7 +108,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     setState(() {});
                     try {
                       await registerUser();
-                      showSnackBar(context, 'Register success');
+                      Navigator.pushNamed(context, ChatScreen.id);
+                      
                     } on FirebaseAuthException catch (e) {
                       if (e.code == 'weak-password') {
                         showSnackBar(
