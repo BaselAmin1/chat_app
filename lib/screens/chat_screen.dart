@@ -1,5 +1,6 @@
 import 'package:chat_app/constants.dart';
 import 'package:chat_app/helper/show_snack_bar.dart';
+import 'package:chat_app/models/message_model.dart';
 import 'package:chat_app/widgets/chat_buble.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,6 +9,7 @@ class ChatScreen extends StatelessWidget {
   ChatScreen({super.key});
 
   static String id = 'ChatScreen';
+  final _controller = ScrollController();
 
   CollectionReference messages =
       FirebaseFirestore.instance.collection(kMessagesCollections);
@@ -16,11 +18,15 @@ class ChatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<QuerySnapshot>(
-        future: messages.get(),
+    var email = ModalRoute.of(context)!.settings.arguments;
+    return StreamBuilder<QuerySnapshot>(
+        stream: messages.orderBy(kCreatedAt, descending: true).snapshots(),
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasData) {
-            print(snapshot.data!.docs[0]['message']);
+            List<Message> messagesList = [];
+            for (int i = 0; i < snapshot.data!.docs.length; i++) {
+              messagesList.add(Message.fromJson(snapshot.data!.docs[i]));
+            }
             return Scaffold(
               appBar: AppBar(
                 title: Row(
@@ -41,8 +47,17 @@ class ChatScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: ListView.builder(
+                      reverse: true,
+                      controller: _controller,
+                      itemCount: messagesList.length,
                       itemBuilder: ((context, index) {
-                        return const ChatBuble();
+                        return messagesList[index].id == email
+                            ? ChatBuble(
+                                message: messagesList[index],
+                              )
+                            : ChatBubleForFreind(
+                                message: messagesList[index],
+                              );
                       }),
                     ),
                   ),
@@ -53,7 +68,9 @@ class ChatScreen extends StatelessWidget {
                       onSubmitted: (data) {
                         messages
                             .add({
-                              'message': data,
+                              kMessage: data,
+                              kCreatedAt: DateTime.now(),
+                              'id': email,
                             })
                             .then(
                                 (value) => showSnackBar(context, 'User sent.'))
@@ -61,6 +78,11 @@ class ChatScreen extends StatelessWidget {
                                 print("Failed to sent message: $error"));
 
                         controller.clear();
+                        _controller.animateTo(
+                          0,
+                          duration: Duration(milliseconds: 500),
+                          curve: Curves.fastOutSlowIn,
+                        );
                       },
                       decoration: InputDecoration(
                         hintText: 'Send message',
